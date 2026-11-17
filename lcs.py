@@ -1,10 +1,12 @@
 import re
 import optimizer
+import nf_convertor
+import resolution
 
 PRECEDENCE = {'!' : 4 , 'not' : 4 , 'and' : 3 , 'or' : 2 , '=>' : 1 , '<=>' : 1}
 
 def tokenize(s):
-    token_pattern = re.compile(r'not|and|or|<=>|=>|⇔|⇒|∧|∨|¬|[()!a-zA-Z⊤⊥]')
+    token_pattern = re.compile(r'not|and|or|<=>|=>|⇔|⇒|∧|∨|¬|[()!⊤⊥]|[a-zA-Z][a-zA-Z0-9_]*')
     tokens = token_pattern.findall(s)
     return tokens
 
@@ -35,7 +37,7 @@ def parse_expression(s):
 
     for token in tokens:
 
-        if (token.isalpha() and token not in PRECEDENCE) or token in {'⊤' , '⊥'}:
+        if (token[0].isalpha() and token not in PRECEDENCE) or token in {'⊤' , '⊥'}:
             output_queue.append(token)
         elif token in PRECEDENCE:
             while(op_stack and op_stack[-1] != '(' and (op_stack[-1] in PRECEDENCE and (PRECEDENCE[op_stack[-1]] > PRECEDENCE[token]))):
@@ -58,7 +60,7 @@ def parse_expression(s):
 
     ast_stack = []
     for token in output_queue:
-        if (token.isalpha() and token not in PRECEDENCE) or token in {'⊤' ,'⊥'}:
+        if (token[0].isalpha() and token not in PRECEDENCE) or token in {'⊤' ,'⊥'}:
             ast_stack.append(token)
         elif token in {'!' , 'not'}:
             if not ast_stack:
@@ -144,7 +146,7 @@ def generate_valuations(variables , index = 0 , current_val = None , all_val = N
     if current_val is None:
         current_val = []
 
-    if index == len(variables):
+    if index == variables:
         all_val.append(current_val.copy())
         return all_val
 
@@ -170,19 +172,35 @@ def get_variables(node):
     else:
         return get_variables(node[1]).union(get_variables(node[2]))
 
+def generate_interpretations(variables , valuations):
+    interpretations = []
+    vars = list(variables)
+    for val in valuations:
+        interpretation = {}
+        for i , var in enumerate(vars):
+            interpretation[var] = val[i]
+        interpretations.append(interpretation)
+    return interpretations
+
 def ast_to_string(node):
     if type(node) is str:
         return node
     op = node[0]
     if op == "not":
         sub_str = ast_to_string(node[1])
-        if len(sub_str) == 1:
+        if type(node[1]) is str:
             return f"!{sub_str}"
         else:
             return f"!({sub_str})"
     else:
         left_str = ast_to_string(node[1])
         right_str = ast_to_string(node[2])
+
+        if type(node[1]) is tuple and node[1][0] not in ('not' , op):
+            left_str = f"({left_str})"
+
+        if type(node[2]) is tuple and node[2][0] not in ('not' , op):
+            right_str = f"({right_str})"
 
         return f"{left_str} {op} {right_str}"
 
@@ -327,28 +345,140 @@ def is_contradiction(s):
     return not is_satisfiable(s)
 
 if __name__ == "__main__":
-#     variables = ['A' , 'B' , 'C']
-#     a = [False , False , True , True , False , True , False , True]
-#     b = [True , True , False , False , True , False , False , False]
-#     c = [True , False , True , False , True , False , True , False]
-#     print(generate_formula(variables , a))
-#     print(optimizer.optimize_logic(variables , a))
-#     print(generate_formula(variables , b))
-#     print(optimizer.optimize_logic(variables , b))
-#     print(generate_formula(variables , c))
-#     print(optimizer.optimize_logic(variables , c))
+
+    # p1)
+
+    # formulas = [
+    # # (a)
+    # "(P => Q) and not Q and not P",
     
-#     variables = ['A', 'B', 'Cin']
-#     sum_vals = [False, True, True, False, True, False, False, True]
-#     cout_vals = [False, False, False, True, False, True, True, True]
+    # # (b)
+    # "(P => Q) => ((Q => S) => ((P or Q) => R))",
     
-#     print("--- Sum ---")
-#     print(generate_formula(variables, sum_vals))
-#     print(optimizer.optimize_logic(variables, sum_vals))
+    # # (c)
+    # "not (P => Q) <=> ((P or Q) and (not P => Q))",
     
-#     print("--- Cout ---")
-#     print(generate_formula(variables, cout_vals))
-#     print(optimizer.optimize_logic(variables, cout_vals))
-    truth_table("not (X or X)")
-    print(check_consequence("Q ∨ R, Q ⇒ ¬P, ¬(R ∧ P) ⊨ ¬P"))
-#I used ai to generate non_ASCII characters for the tree_print function and for the formatting for the truth table function
+    # # (d)
+    # "(P <=> Q) <=> not (P => not Q)",
+    
+    # # (e)
+    # "(not P => (Q and R)) => ((Q or not R) <=> P)",
+    
+    # # (f)
+    # "(P or not Q or (R <=> S)) <=> (S and Q)",
+    
+    # # (g)
+    # "(P <=> (P and Q)) => not Q",
+    
+    # # (h)
+    # "not (not P or Q or R) or (Q => (P or not R))",
+    
+    # # (i)
+    # "(not P or Q or R) and (P or not R) and (not Q or not R) and not (P and R)",
+    
+    # # (j)
+    # "(((P1 => (P2 or P3)) and (not P1 => (P3 or P4))) and ((P3 => not P6) and (not P3 => (P4 => P1))) and (not (P2 and P5) and (P2 => P5))) => not (P3 => P6)"
+    # ]
+
+    # for i , formula in enumerate(formulas):
+    #     print(chr(97 + i) + ')')
+    #     print(formula)
+    #     ast = parse_expression(formula)
+    #     nnf = nf_convertor.simplify_nnf(nf_convertor.to_nnf(ast))
+    #     print("CNF: " + ast_to_string(nf_convertor.to_cnf(nnf)))
+    #     print("DNF: " + ast_to_string(nf_convertor.to_dnf(nnf)))
+
+    # p2)
+
+    # p2 = [[
+    #     frozenset({'A' , '!B' , 'C'}),
+    #     frozenset({'B' , 'C'}),
+    #     frozenset({'!A' , 'C'}),
+    #     frozenset({'B' , '!C'}),
+    #     frozenset({'!B'})
+    # ],
+    #         [
+    #     frozenset({'A' , '!B'}),
+    #     frozenset({'A' , 'C'}),
+    #     frozenset({'!B' , 'C'}),
+    #     frozenset({'!A' , 'B'}),
+    #     frozenset({'B' , '!C'}),
+    #     frozenset({'!A' , '!C'})
+    # ]]
+
+    # for p in p2:
+    #     s = resolution.get_corresponding_formula(p)
+    #     print(s)
+    #     print()
+    #     if resolution.resolution_solver(p , print_steps = True):
+    #         ast = parse_expression(s)
+    #         vars = get_variables(ast)
+    #         interpretations = generate_interpretations(vars , len(vars))
+    #         for i in interpretations:
+    #             if evaluate_expression(ast , i):
+    #                 print(f"A satisfying truth valuation is: {i}")
+    #                 print()
+    #                 break
+
+    # p3)
+
+    # p = {
+    #     frozenset({'P' , 'Q' , '!R'}),
+    #     frozenset({'!P' , 'R'}),
+    #     frozenset({'P' , '!Q' , 'S'}),
+    #     frozenset({'!P' , '!Q' , '!R'}),
+    #     frozenset({'P' , '!S'})
+    # }
+
+    # s = resolution.get_corresponding_formula(p)
+    # if resolution.resolution_solver(p , print_steps = True):
+    #     ast = parse_expression(s)
+    #     vars = sorted(get_variables(ast))
+    #     interpretations = generate_interpretations(vars , generate_valuations(len(vars)))
+    #     for i in interpretations:
+    #         if evaluate_expression(ast , i):
+    #             print()
+    #             print(f"A satisfying truth valuation is: {i}")
+    #             print()
+    #             break
+    
+    # p4)
+
+    # p = "not ((((P1 => (P2 or P3)) and (not P1 => (P3 or P4))) and ((P3 => not P6) and (not P3 => (P4 => P1))) and (not (P2 and P5) and (P2 => P5))) => not (P3 => P6))"
+    # ast = parse_expression(p)
+    # nnf = nf_convertor.simplify_nnf(nf_convertor.to_nnf(ast))
+    # formula = ast_to_string(nf_convertor.to_cnf(nnf))
+    # print(formula)
+    # ans = []
+    # clauses = formula.split(' and ')
+    # for clause in clauses:
+    #     clean = clause.strip('() ')
+    #     literals = clean.split(' or ')
+    #     cleanl = {lit.strip() for lit in literals}
+    #     print(cleanl)
+    #     ans.append(frozenset(cleanl))
+    # print(resolution.resolution_solver(ans , print_steps = True))
+
+    # p5)
+
+    premises = [
+        "A and W => P",
+        "not A => P",
+        "not W => M",
+        "not P",
+        "E => (not I and not M)",
+        "E"
+    ]
+    ans = []
+    for p in premises:
+        ast = parse_expression(p)
+        nnf = nf_convertor.simplify_nnf(nf_convertor.to_nnf(ast))
+        cnf = ast_to_string(nf_convertor.to_cnf(nnf))
+        clauses = cnf.split(' and ')
+        for clause in clauses:
+            clean = clause.strip('() ')
+            literals = clean.split(' or ')
+            cleanl = {lit.strip() for lit in literals}
+            print(cleanl)
+            ans.append(frozenset(cleanl))
+    print(resolution.resolution_solver(ans , print_steps = 1))

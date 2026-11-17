@@ -21,9 +21,11 @@ evaluate_expression(syntax_tree, interpretation) - Computes the True/False resul
 
 tree_print(node) - Pretty-prints the hierarchical structure of the AST in the console.
 
-generate_valuations(variables) - Uses backtracking to generate all 2^n possible True/False combinations for a given list of variables.
+generate_valuations(variables) - Uses backtracking to generate all 2^n possible True/False combinations for a given number of variables (integer).
 
 get_variables(node) - Extracts and returns a set of all unique propositional variables present in an AST.
+
+generate_interpretations(variables, valuations) - Combines a list of variable names and a list of boolean valuations to generate a list of interpretation dictionaries mapping variables to their truth values.
 
 ast_to_string(node) - Converts an AST back into a readable string format.
 
@@ -43,7 +45,6 @@ is_satisfiable(s) - Checks if a formula evaluates to True under at least one int
 
 is_contradiction(s) - Checks if a formula evaluates to False under all interpretations.
 
-
 optimizer.py (Quine-McCluskey Optimizer)
 
 get_initial_groups(variables, truth_values) - Groups the binary representation of true outcomes by their weight (number of 1s).
@@ -61,3 +62,37 @@ get_final_implicants(prime_implicants, variables, truth_values) - Resolves the p
 format_final_implicants(implicants, variables) - Converts the final optimized list of binary strings back into a readable logic formula.
 
 optimize_logic(variables, truth_values) - The main wrapper function that orchestrates the Quine-McCluskey algorithm and returns the final minimized logic string.
+
+nf_convertor.py (Normal Form Converter)
+
+remove_implications(node) - Replaces implications (=>) and equivalences (<=>) in an AST with equivalent AND/OR/NOT logic.
+
+push_neg(node) - Pushes negations inward using De Morgan's laws and eliminates double negations.
+
+to_nnf(node) - Converts an AST into Negation Normal Form (NNF).
+
+get_operands(node, target_op) - Flattens nested trees of the same operator type.
+
+build_tree(op, operands) - Reconstructs a binary AST from a list of operands.
+
+simplify_nnf(node) - Simplifies an NNF AST by applying absorption laws, eliminating redundant variables, and handling truth constants.
+
+distribute_and(A, B) - Distributes the AND operator over OR operators for DNF conversion.
+
+to_dnf(node) - Converts an AST into simplified Disjunctive Normal Form (DNF).
+
+distribute_or(A, B) - Distributes the OR operator over AND operators for CNF conversion.
+
+to_cnf(node) - Converts an AST into simplified Conjunctive Normal Form (CNF).
+
+resolution.py (Resolution Theorem Prover)
+
+negate(literal) - Returns the negated form of a literal string.
+
+resolve(c1, c2) - Resolves two clauses if they contain exactly one pair of complementary literals.
+
+resolution_solver(clause_set, print_steps) - Checks a set of clauses for satisfiability using the propositional resolution method. Includes optimizations for subsumption and unit clauses.
+
+sort_literal(literal) - Sorting key used to alphabetize literals by their base variable name.
+
+get_corresponding_formula(clause_set) - Converts a list of frozenset clauses back into a standard CNF formula string.
