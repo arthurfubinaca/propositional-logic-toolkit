@@ -17,8 +17,17 @@ def resolve(c1 , c2):
     return None
 
 def resolution_solver(clause_set , print_steps):
-    clauses = list(clause_set)
-    seen_clauses = set(clause_set)
+    initial = []
+    for clause in set(clause_set):
+        if len(clause) == 0:
+            if print_steps:
+                print("Initial clause set contains the empty set")
+                print("UNSATISFIABLE!")
+            return False
+        if not any(negate(lit) in clause for lit in clause):
+            initial.append(clause)
+    clauses = initial
+    seen_clauses = set(initial)
     step = 1
     start_index = 0
 
@@ -103,3 +112,17 @@ def get_corresponding_formula(clause_set):
         literals = sorted(list(clause) , key = sort_literal)
         clauses.append("(" + " ∨ ".join(literals) + ")")
     return " ∧ ".join(clauses)
+
+def get_clause_set(formula):
+    if formula == '⊤':
+        return set()
+    if formula == '⊥':
+        return {frozenset()}
+    clause_set = set()
+    clauses = formula.split(' and ')
+    for clause in clauses:
+        clean_clause = clause.strip('() ')
+        literals = clean_clause.split(' or ')
+        clean_literals = {lit.strip() for lit in literals}
+        clause_set.add(frozenset(clean_literals))
+    return clause_set

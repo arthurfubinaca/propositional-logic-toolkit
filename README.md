@@ -79,11 +79,15 @@ simplify_nnf(node) - Simplifies an NNF AST by applying absorption laws, eliminat
 
 distribute_and(A, B) - Distributes the AND operator over OR operators for DNF conversion.
 
-to_dnf(node) - Converts an AST into simplified Disjunctive Normal Form (DNF).
+to_DNF(node) - Wrapper function that converts any raw AST into NNF, simplifies it, and transforms it into Disjunctive Normal Form (DNF).
+
+to_dnf(node) - Recursively converts an NNF AST into simplified Disjunctive Normal Form (DNF).
 
 distribute_or(A, B) - Distributes the OR operator over AND operators for CNF conversion.
 
-to_cnf(node) - Converts an AST into simplified Conjunctive Normal Form (CNF).
+to_CNF(node) - Wrapper function that converts any raw AST into NNF, simplifies it, and transforms it into Conjunctive Normal Form (CNF).
+
+to_cnf(node) - Recursively converts an NNF AST into simplified Conjunctive Normal Form (CNF).
 
 resolution.py (Resolution Theorem Prover)
 
@@ -96,3 +100,5 @@ resolution_solver(clause_set, print_steps) - Checks a set of clauses for satisfi
 sort_literal(literal) - Sorting key used to alphabetize literals by their base variable name.
 
 get_corresponding_formula(clause_set) - Converts a list of frozenset clauses back into a standard CNF formula string.
+
+get_clause_set(formula) - Parses a CNF formula string into a set of frozenset clauses, handling top-level truth constants (⊤ and ⊥).

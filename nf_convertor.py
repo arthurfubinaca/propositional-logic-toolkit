@@ -117,6 +117,11 @@ def distribute_and(A , B):
     else:
         return simplify_nnf(('and' , A , B))
 
+def to_DNF(node):
+    nnf = to_nnf(node)
+    s_nnf = simplify_nnf(nnf)
+    return to_dnf(s_nnf)
+
 def to_dnf(node):
     if type(node) is str:
         return node
@@ -146,6 +151,11 @@ def distribute_or(A , B):
     else:
         return simplify_nnf(('or' , A , B))
 
+def to_CNF(node):
+    nnf = to_nnf(node)
+    s_nnf = simplify_nnf(nnf)
+    return to_cnf(s_nnf)
+
 def to_cnf(node):
     if type(node) is str:
         return node
@@ -162,3 +172,5 @@ def to_cnf(node):
         left = to_cnf(node[1])
         right = to_cnf(node[2])
         return distribute_or(left , right)
+
+    
