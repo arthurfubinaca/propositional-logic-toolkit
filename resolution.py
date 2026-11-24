@@ -126,3 +126,182 @@ def get_clause_set(formula):
         clean_literals = {lit.strip() for lit in literals}
         clause_set.add(frozenset(clean_literals))
     return clause_set
+
+def eliminate_literal(clauses , lit , print_steps , rule_name , state = None):
+    neg_lit = negate(lit)
+    new_clauses = set()
+    for clause in clauses:
+        if lit in clause:
+            continue
+        elif neg_lit in clause:
+            new_clauses.add(clause - {neg_lit})
+        else:
+            new_clauses.add(clause)
+
+    if print_steps:
+        prefix = f"Step {state['step']}: " if state is not None else ""
+        print(f"{prefix}Applied {rule_name} on {lit}")
+        print()
+        print("Updated clause set K':")
+        for i , c in enumerate(new_clauses):
+            if len(c) == 0:
+                print(f"{i + 1}. " + "{}")
+            else:
+                print(f"{i + 1}. {set(c)}")
+        print()
+
+    if state is not None:
+        state["step"] += 1
+
+    return new_clauses
+
+def apply_dp_rules(clauses , print_steps , state = None):
+    while True:
+        if len(clauses) == 0:
+            return clauses , True
+        if frozenset() in clauses:
+            return clauses , False
+
+        unit_lit = None
+        for clause in clauses:
+            if len(clause) == 1:
+                unit_lit = list(clause)[0]
+                break
+        if unit_lit is not None:
+            clauses = eliminate_literal(clauses , unit_lit , print_steps , "The one literal rule" , state)
+            continue
+
+        lits = {lit for clause in clauses for lit in clause}
+        pure_lit = None
+        for lit in lits:
+            if negate(lit) not in lits:
+                pure_lit = lit
+                break
+        if pure_lit is not None:
+            clauses = eliminate_literal(clauses , pure_lit , print_steps , "The pure literal rule" , state)
+            continue
+
+        return clauses , None
+
+def dp_solver(clause_set , print_steps):
+    state = {'step': 1}
+    clauses = set()
+    for clause in clause_set:
+        if len(clause) == 0:
+            if print_steps:
+                print("Initial clause set contains the empty set")
+                print("UNSATISFIABLE!")
+            return False
+        if not any(negate(lit) in clause for lit in clause):
+            clauses.add(clause)
+
+    if print_steps:
+        print("Initial clause set K:")
+        for i , c in enumerate(clauses):
+            print(f"{i + 1}. {set(c)}")
+        print()
+
+    step = 1
+    while True:
+
+        clauses , status = apply_dp_rules(clauses , print_steps , state)
+
+        if status == True:
+            if print_steps:
+                print("Clause set is empty. Result: SATISFIABLE")
+                print(f"Total step count: {state['step'] - 1}")
+            return True
+
+        if status == False:
+            if print_steps:
+                print("Generated the empty set. Result: UNSATISFIABLE")
+                print(f"Total step count: {state['step'] - 1}")
+            return False
+
+        clause_list = sorted(clauses , key = len)
+        resolvent = None
+
+        for i in range(len(clause_list)):
+            for j in range(i + 1 , len(clause_list)):
+                res = resolve(clause_list[i] , clause_list[j])
+                if res is not None and res not in clauses:
+                    if any(existing.issubset(res) for existing in clauses):
+                        continue
+
+                    resolvent = res
+                    if print_steps:
+                        print(f"Step {state['step']}: Resolved {set(clause_list[i])} and {set(clause_list[j])}")
+                        print(f"New clause: {set(resolvent)}")
+                    state["step"] += 1
+                    break
+            if resolvent is not None:
+                break
+
+        if resolvent is None:
+            if print_steps:
+                print(f"Total step count: {state['step']}")
+                print("Exhausted all combinations. Result: SATISFIABLE")
+            return True
+
+        if len(resolvent) == 0:
+            if print_steps:
+                print(f"Total step count: {state['step']}")
+                print("Generated the empty set! Result: UNSATISFIABLE")
+            return False
+
+        clauses.add(resolvent)
+
+def _dpll(clauses , print_steps , state , depth = 0):
+
+    clauses , status = apply_dp_rules(clauses , print_steps , state)
+
+    if status == True:
+        if print_steps:
+            print(f"== [Depth {depth}] Satisfied ==")
+            print()
+        return True
+    
+    if status == False:
+        if print_steps:
+            print(f"== [Depth {depth}] Conflict -> Backtracking ==")
+            print()
+        return False
+
+    smallest_clause = min(clauses , key = len)
+    chosen_lit = list(smallest_clause)[0]
+    neg_lit = negate(chosen_lit)
+
+    if print_steps:
+        print(f"[Depth {depth}] Branch 1: Splitting on {chosen_lit}")
+    left_clauses = eliminate_literal(clauses , chosen_lit , print_steps , "split" , state)
+    if _dpll(left_clauses , print_steps , state , depth + 1):
+        return True
+    
+    if print_steps:
+        print(f"[Depth {depth}] Branch 2: Splitting on {neg_lit}")
+    right_clauses = eliminate_literal(clauses , neg_lit , print_steps , "split" , state)
+    return _dpll(right_clauses , print_steps , state , depth + 1)
+
+def dpll_solver(clause_set , print_steps):
+    state = {"step": 1}
+    clauses = set()
+    for clause in clause_set:
+        if len(clause) == 0:
+            if print_steps:
+                print("Initial clause set contains the empty set")
+                print("UNSATISFIABLE!")
+            return False
+        if not any(negate(lit) in clause for lit in clause):
+            clauses.add(clause)
+    
+    if print_steps:
+        print("Initial clause set K:")
+        for i , c in enumerate(clauses):
+            print(f"{i + 1}. {set(c)}")
+        print()
+
+    result = _dpll(clauses ,  print_steps , state)
+    if print_steps:
+        print(f"Result is {'SATISFIABLE' if result else 'UNSATISFIABLE'}")
+        print(f"Total step count: {state['step'] - 1}")
+    return result

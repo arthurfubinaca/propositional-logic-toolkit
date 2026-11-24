@@ -102,3 +102,13 @@ sort_literal(literal) - Sorting key used to alphabetize literals by their base v
 get_corresponding_formula(clause_set) - Converts a list of frozenset clauses back into a standard CNF formula string.
 
 get_clause_set(formula) - Parses a CNF formula string into a set of frozenset clauses, handling top-level truth constants (⊤ and ⊥).
+
+eliminate_literal(clauses, lit, print_steps, rule_name, state=None) - Removes clauses satisfied by a literal and deletes its complement from the remaining clauses, updating the step trace.
+
+apply_dp_rules(clauses, print_steps, state=None) - Repeatedly applies the one-literal rule (unit propagation) and the pure literal rule until neither is applicable or a terminal state is reached.
+
+dp_solver(clause_set, print_steps) - Checks a set of clauses for satisfiability using the Davis-Putnam (DP) algorithm, combining unit propagation and pure literal elimination with resolution.
+
+_dpll(clauses, print_steps, state, depth=0) - Recursive helper function that performs branching (splitting) on literals and backtracking for the DPLL algorithm.
+
+dpll_solver(clause_set, print_steps) - Checks a set of clauses for satisfiability using the Davis-Putnam-Logemann-Loveland (DPLL) algorithm.

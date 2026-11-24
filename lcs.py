@@ -348,137 +348,83 @@ if __name__ == "__main__":
 
     # p1)
 
-    # formulas = [
-    # # (a)
-    # "(P => Q) and not Q and not P",
-    
-    # # (b)
-    # "(P => Q) => ((Q => S) => ((P or Q) => R))",
-    
-    # # (c)
-    # "not (P => Q) <=> ((P or Q) and (not P => Q))",
-    
-    # # (d)
-    # "(P <=> Q) <=> not (P => not Q)",
-    
-    # # (e)
-    # "(not P => (Q and R)) => ((Q or not R) <=> P)",
-    
-    # # (f)
-    # "(P or not Q or (R <=> S)) <=> (S and Q)",
-    
-    # # (g)
-    # "(P <=> (P and Q)) => not Q",
-    
-    # # (h)
-    # "not (not P or Q or R) or (Q => (P or not R))",
-    
-    # # (i)
-    # "(not P or Q or R) and (P or not R) and (not Q or not R) and not (P and R)",
-    
-    # # (j)
-    # "(((P1 => (P2 or P3)) and (not P1 => (P3 or P4))) and ((P3 => not P6) and (not P3 => (P4 => P1))) and (not (P2 and P5) and (P2 => P5))) => not (P3 => P6)"
-    # ]
-
-    # for i , formula in enumerate(formulas):
-    #     print(chr(97 + i) + ')')
-    #     print(formula)
-    #     ast = parse_expression(formula)
-    #     nnf = nf_convertor.simplify_nnf(nf_convertor.to_nnf(ast))
-    #     print("CNF: " + ast_to_string(nf_convertor.to_cnf(nnf)))
-    #     print("DNF: " + ast_to_string(nf_convertor.to_dnf(nnf)))
-
-    # p2)
-
-    # p2 = [[
-    #     frozenset({'A' , '!B' , 'C'}),
-    #     frozenset({'B' , 'C'}),
-    #     frozenset({'!A' , 'C'}),
-    #     frozenset({'B' , '!C'}),
-    #     frozenset({'!B'})
-    # ],
-    #         [
-    #     frozenset({'A' , '!B'}),
-    #     frozenset({'A' , 'C'}),
-    #     frozenset({'!B' , 'C'}),
-    #     frozenset({'!A' , 'B'}),
-    #     frozenset({'B' , '!C'}),
-    #     frozenset({'!A' , '!C'})
-    # ]]
-
-    # for p in p2:
-    #     s = resolution.get_corresponding_formula(p)
-    #     print(s)
-    #     print()
-    #     if resolution.resolution_solver(p , print_steps = True):
-    #         ast = parse_expression(s)
-    #         vars = get_variables(ast)
-    #         interpretations = generate_interpretations(vars , len(vars))
-    #         for i in interpretations:
-    #             if evaluate_expression(ast , i):
-    #                 print(f"A satisfying truth valuation is: {i}")
-    #                 print()
-    #                 break
-
-    # p3)
-
-    # p = {
-    #     frozenset({'P' , 'Q' , '!R'}),
-    #     frozenset({'!P' , 'R'}),
-    #     frozenset({'P' , '!Q' , 'S'}),
-    #     frozenset({'!P' , '!Q' , '!R'}),
-    #     frozenset({'P' , '!S'})
-    # }
-
-    # s = resolution.get_corresponding_formula(p)
-    # if resolution.resolution_solver(p , print_steps = True):
-    #     ast = parse_expression(s)
-    #     vars = sorted(get_variables(ast))
-    #     interpretations = generate_interpretations(vars , generate_valuations(len(vars)))
-    #     for i in interpretations:
-    #         if evaluate_expression(ast , i):
-    #             print()
-    #             print(f"A satisfying truth valuation is: {i}")
-    #             print()
-    #             break
-    
-    # p4)
-
-    # p = "not ((((P1 => (P2 or P3)) and (not P1 => (P3 or P4))) and ((P3 => not P6) and (not P3 => (P4 => P1))) and (not (P2 and P5) and (P2 => P5))) => not (P3 => P6))"
-    # ast = parse_expression(p)
-    # nnf = nf_convertor.simplify_nnf(nf_convertor.to_nnf(ast))
-    # formula = ast_to_string(nf_convertor.to_cnf(nnf))
-    # print(formula)
-    # ans = []
-    # clauses = formula.split(' and ')
-    # for clause in clauses:
-    #     clean = clause.strip('() ')
-    #     literals = clean.split(' or ')
-    #     cleanl = {lit.strip() for lit in literals}
-    #     print(cleanl)
-    #     ans.append(frozenset(cleanl))
-    # print(resolution.resolution_solver(ans , print_steps = True))
-
-    # p5)
-
     premises = [
         "A and W => P",
-        "not A => P",
+        "not A => I",
         "not W => M",
         "not P",
         "E => (not I and not M)",
         "E"
     ]
-    ans = []
+    clause_set = set()
     for p in premises:
-        ast = parse_expression(p)
-        nnf = nf_convertor.simplify_nnf(nf_convertor.to_nnf(ast))
-        cnf = ast_to_string(nf_convertor.to_cnf(nnf))
-        clauses = cnf.split(' and ')
-        for clause in clauses:
-            clean = clause.strip('() ')
-            literals = clean.split(' or ')
-            cleanl = {lit.strip() for lit in literals}
-            print(cleanl)
-            ans.append(frozenset(cleanl))
-    print(resolution.resolution_solver(ans , print_steps = 1))
+        formula = parse_expression(p)
+        cnf = ast_to_string(nf_convertor.to_CNF(formula))
+        clause_set.update(resolution.get_clause_set(cnf))
+    print("Solution using DP\n")
+    resolution.dp_solver(clause_set , print_steps = True)
+    print()
+    print("Solution using DPLL\n")
+    resolution.dpll_solver(clause_set , print_steps = True)
+    print()
+
+    # p2)
+
+    p2 = [[
+        frozenset({'A' , '!B' , 'C'}),
+        frozenset({'B' , 'C'}),
+        frozenset({'!A' , 'C'}),
+        frozenset({'B' , '!C'}),
+        frozenset({'!B'})
+    ],
+            [
+        frozenset({'A' , '!B'}),
+        frozenset({'A' , 'C'}),
+        frozenset({'!B' , 'C'}),
+        frozenset({'!A' , 'B'}),
+        frozenset({'B' , '!C'}),
+        frozenset({'!A' , '!C'})
+    ]]
+
+    for p in p2:
+        print("The corresponding formula is: ")
+        s = resolution.get_corresponding_formula(p)
+        print(s + '\n')
+        print("Solution using DP\n")
+        resolution.dp_solver(p , print_steps = True)
+        print()
+        print("Solution using DPLL\n")
+        resolution.dpll_solver(p , print_steps = True)
+        print()
+
+    # p3)
+
+    p = {
+        frozenset({'P' , 'Q' , '!R'}),
+        frozenset({'!P' , 'R'}),
+        frozenset({'P' , '!Q' , 'S'}),
+        frozenset({'!P' , '!Q' , '!R'}),
+        frozenset({'P' , '!S'})
+    }
+
+    print("Solution using DP\n")
+    resolution.dp_solver(p , print_steps = True)
+    print()
+    print("Solution using DPLL\n")
+    resolution.dpll_solver(p , print_steps = True)
+    
+    # p4)
+
+    p = "not ((((P1 => (P2 or P3)) and (not P1 => (P3 or P4))) and ((P3 => not P6) and (not P3 => (P4 => P1))) and (not (P2 and P5) and (P2 => P5))) => not (P3 => P6))"
+    ast = parse_expression(p)
+    nnf = nf_convertor.simplify_nnf(nf_convertor.to_nnf(ast))
+    formula = ast_to_string(nf_convertor.to_cnf(nnf))
+    print(formula)
+    clause_set = resolution.get_clause_set(formula)
+
+    print("Solution using DP\n")
+    resolution.dp_solver(clause_set , print_steps = True)
+    print()
+    print("Solution using DPLL\n")
+    resolution.dpll_solver(clause_set , print_steps = True)
+    
